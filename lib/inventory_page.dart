@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'custom_bottom_nav.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -14,8 +13,6 @@ class _InventoryPageState extends State<InventoryPage> {
   int? selectedIndex; // 어떤 아이템이 선택되었는지 저장
   int tabIndex = 0; // 소비 아이템(0), 치장 아이템(1)
 
-  final String baseUrl = "http://3.36.54.191:8082/api"; // ✅ 서버 주소
-
   final List<Map<String, dynamic>> consumableItems = [
     {"name": "랜덤 박스", "count": 3, "icon": "assets/랜덤박스.png"},
     {"name": "경험치 쿠폰", "count": 2, "icon": "assets/경험치 증가.png"},
@@ -24,43 +21,93 @@ class _InventoryPageState extends State<InventoryPage> {
     {"name": "랜덤 포인트", "count": 1, "icon": "assets/랜덤 포인트.png"},
   ];
 
+  /// ✅ 랜덤 박스 열기 (API X, 로컬 랜덤 효과)
   Future<void> _openRandomBox() async {
-    try {
-      final response = await http.post(Uri.parse("$baseUrl/rewards/open"),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({"userId": 1})); // ✅ 로그인 연동 후 userId 수정
+    final reward = 50 + Random().nextInt(251); // 50 ~ 300 포인트 랜덤
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final reward = data["totalRewardPoints"] ?? 0;
-
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text("🎁 보상 획득!"),
-            content: Text("포인트 박스에서 ${reward}p를 얻었습니다."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("확인"),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 🎁 랜덤 박스 애니메이션
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.8, end: 1.2),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeInOut,
+                    builder: (context, scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: Image.asset(
+                          "assets/랜덤박스.png",
+                          width: 100,
+                          height: 100,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    "🎉 축하합니다!",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "$reward 포인트를 획득했습니다.",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "확인",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
           ),
         );
-      } else if (response.statusCode == 404) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("운영환경에서는 박스를 직접 열 수 없습니다.")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("실패: ${response.body}")),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("에러 발생: $e")),
-      );
-    }
+      },
+    );
   }
 
   @override
@@ -68,8 +115,10 @@ class _InventoryPageState extends State<InventoryPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text("보관함",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text(
+          "보관함",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
@@ -89,26 +138,50 @@ class _InventoryPageState extends State<InventoryPage> {
               minimum: const EdgeInsets.only(bottom: 12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
+                child: GestureDetector(
+                  onTap: () {
                     final item = consumableItems[selectedIndex!];
                     if (item["name"] == "랜덤 박스") {
-                      _openRandomBox(); // ✅ 상자깡 API 호출
+                      _openRandomBox(); // ✅ 로컬 랜덤 보상
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text("${item["name"]} 은 아직 구현되지 않았습니다.")));
                     }
                   },
-                  child: const Text(
-                    "사용하기",
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.deepOrange],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      "✨ 사용하기 ✨",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(1, 1),
+                          )
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -171,7 +244,8 @@ class _InventoryPageState extends State<InventoryPage> {
                     Image.asset(item["icon"], width: 40, height: 40),
                     const SizedBox(height: 6),
                     Text(item["name"],
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                        style:
+                        const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
                 Positioned(
