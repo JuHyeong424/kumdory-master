@@ -52,7 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// API에서 경험치 데이터 가져오기 (앱 시작 시 호출)
   Future<void> _fetchXpData() async {
     if (!_isLoading) {
-      setState(() { _isLoading = true; });
+      setState(() {
+        _isLoading = true;
+      });
     }
     try {
       const userId = 999;
@@ -76,7 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _level = level;
       _totalExp = totalExp;
-      _progress = _calculateProgressFromXp(level: _level, totalExp: _totalExp);
+      _progress =
+          _calculateProgressFromXp(level: _level, totalExp: _totalExp);
       _isLoading = false;
     });
   }
@@ -95,19 +98,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 레벨과 총 경험치로 프로그레스 바(0.0 ~ 1.0) 계산
-  double _calculateProgressFromXp({required int level, required int totalExp}) {
+  double _calculateProgressFromXp(
+      {required int level, required int totalExp}) {
     if (level >= 30) return 1.0;
 
-    // [수정됨] API 명세와 일치하는 경험치 테이블
     const Map<int, int> requiredTotalExpForLevel = {
-      2: 100, 3: 500, 4: 1000, 5: 2000, 6: 5000,
+      2: 100,
+      3: 500,
+      4: 1000,
+      5: 2000,
+      6: 5000,
     };
 
-    final int currentLevelStartExp = (level == 1) ? 0 : requiredTotalExpForLevel[level] ?? (5000 + (level - 6) * 1000);
-    final int nextLevelStartExp = requiredTotalExpForLevel[level + 1] ?? (5000 + (level + 1 - 6) * 1000);
+    final int currentLevelStartExp = (level == 1)
+        ? 0
+        : requiredTotalExpForLevel[level] ??
+        (5000 + (level - 6) * 1000);
+    final int nextLevelStartExp =
+        requiredTotalExpForLevel[level + 1] ??
+            (5000 + (level + 1 - 6) * 1000);
 
-    final double expNeededForThisLevel = (nextLevelStartExp - currentLevelStartExp).toDouble();
-    final double expInThisLevel = (totalExp - currentLevelStartExp).toDouble();
+    final double expNeededForThisLevel =
+    (nextLevelStartExp - currentLevelStartExp).toDouble();
+    final double expInThisLevel =
+    (totalExp - currentLevelStartExp).toDouble();
 
     if (expNeededForThisLevel <= 0) return 0.0;
 
@@ -124,6 +138,44 @@ class _HomeScreenState extends State<HomeScreen> {
     return '다음 보상까지 ${remainingLevels}레벨';
   }
 
+  /// +EXP 애니메이션 띄우기
+  void _showFloatingExp(BuildContext context, int exp) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).size.height * 0.4,
+        left: MediaQuery.of(context).size.width * 0.35,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: -80.0),
+          duration: const Duration(seconds: 3),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, value),
+              child: Opacity(
+                opacity: 1 - (value.abs() / 80),
+                child: child,
+              ),
+            );
+          },
+          child: Text(
+            "+$exp EXP",
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+              shadows: [
+                Shadow(color: Colors.black26, blurRadius: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 1), () => entry.remove());
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
@@ -134,57 +186,165 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Stack(
           children: [
-            // ... (상단 UI는 동일) ...
             Column(
               children: [
                 const SizedBox(height: 90),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(_selectedCharacterName, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black, height: 1.0,)),
-                  const SizedBox(width: 12),
-                  OutlinedButton(style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFF66A7FF)), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18),), backgroundColor: Colors.white,),
-                    onPressed: () async {
-                      final selected = await showModalBottomSheet<String>(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => const CharacterSelectSheet(),);
-                      if (selected != null) {
-                        setState(() {
-                          _selectedCharacterName = selected;
-                          switch (selected) {
-                            case '도르': _selectedCharacterImage = 'assets/도르 1.png'; break;
-                            case '네브': _selectedCharacterImage = 'assets/네브 2.png'; break;
-                            case '몽몽': _selectedCharacterImage = 'assets/몽몽 1.png'; break;
-                            case '꿈결이': _selectedCharacterImage = 'assets/꿈결이 1.png'; break;
-                            case '꿈누리': _selectedCharacterImage = 'assets/꿈누리 1.png'; break;
-                            case '꿈둥이': _selectedCharacterImage = 'assets/꿈둥이 1.png'; break;
-                            case '꿈돌이': default: _selectedCharacterImage = 'assets/꿈돌이 2.png';
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _selectedCharacterName,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF66A7FF)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          backgroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final selected =
+                          await showModalBottomSheet<String>(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const CharacterSelectSheet(),
+                          );
+                          if (selected != null) {
+                            setState(() {
+                              _selectedCharacterName = selected;
+                              switch (selected) {
+                                case '도르':
+                                  _selectedCharacterImage =
+                                  'assets/도르 1.png';
+                                  break;
+                                case '네브':
+                                  _selectedCharacterImage =
+                                  'assets/네브 2.png';
+                                  break;
+                                case '몽몽':
+                                  _selectedCharacterImage =
+                                  'assets/몽몽 1.png';
+                                  break;
+                                case '꿈결이':
+                                  _selectedCharacterImage =
+                                  'assets/꿈결이 1.png';
+                                  break;
+                                case '꿈누리':
+                                  _selectedCharacterImage =
+                                  'assets/꿈누리 1.png';
+                                  break;
+                                case '꿈둥이':
+                                  _selectedCharacterImage =
+                                  'assets/꿈둥이 1.png';
+                                  break;
+                                case '꿈돌이':
+                                default:
+                                  _selectedCharacterImage =
+                                  'assets/꿈돌이 2.png';
+                              }
+                            });
                           }
-                        });
-                      }
-                    },
-                    child: const Text('캐릭터변경', style: TextStyle(fontSize: 13, color: Color(0xFF2D7CFF), fontWeight: FontWeight.w600,),),
-                  ),
-                ],
-                ),
+                        },
+                        child: const Text(
+                          '캐릭터변경',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF2D7CFF),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ]),
                 const SizedBox(height: 20),
-                SizedBox(width: w * 0.7, height: w * 0.7, child: Image.asset(_selectedCharacterImage, fit: BoxFit.contain, errorBuilder: (_, __, ___) => _MascotPlaceholder(),),),
+                SizedBox(
+                  width: w * 0.7,
+                  height: w * 0.7,
+                  child: Image.asset(
+                    _selectedCharacterImage,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => _MascotPlaceholder(),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                if (!_isLoading) Text(_getNextRewardLevelText(), style: const TextStyle(fontSize: 16, color: Color(0xFFBE6F39), fontWeight: FontWeight.w700,),),
+                if (!_isLoading)
+                  Text(
+                    _getNextRewardLevelText(),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFBE6F39),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 const SizedBox(height: 16),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),],),
-                    child: _isLoading ? const Center(child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator(),),)
-                        : Column(crossAxisAlignment: CrossAxisAlignment.start,
+                    padding:
+                    const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: _isLoading
+                        ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                        : Column(
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
                       children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          _LevelBadge(levelText: 'Lv. $_level'),
-                          Text('${(_progress * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                        ],
+                        Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                          children: [
+                            _LevelBadge(levelText: 'Lv. $_level'),
+                            Text(
+                              '${(_progress * 100).toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
-                        ClipRRect(borderRadius: BorderRadius.circular(999), child: SizedBox(height: 10, child: Stack(children: [
-                          Container(color: const Color(0xFFE6E6E6)),
-                          FractionallySizedBox(widthFactor: _progress, child: Container(color: const Color(0xFFF07B2A)),),
-                        ],),),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: SizedBox(
+                            height: 10,
+                            child: Stack(
+                              children: [
+                                Container(
+                                    color: const Color(0xFFE6E6E6)),
+                                FractionallySizedBox(
+                                  widthFactor: _progress,
+                                  child: Container(
+                                      color:
+                                      const Color(0xFFF07B2A)),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -195,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
-            // [핵심 수정된 스캔 버튼 로직]
+            // 스캔 버튼
             Positioned(
               right: 24,
               bottom: 50,
@@ -204,35 +364,57 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                    decoration: ShapeDecoration(color: Colors.white, shadows: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))], shape: const _SpeechBubbleBorderRight(radius: 16, nipSize: 12),),
-                    child: const Text('영수증 스캔하고 레벨업!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 5),
+                    decoration: ShapeDecoration(
+                      color: Colors.white,
+                      shadows: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        )
+                      ],
+                      shape: const _SpeechBubbleBorderRight(
+                          radius: 16, nipSize: 12),
+                    ),
+                    child: const Text(
+                      '영수증 스캔하고 레벨업!',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
                   ),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF8D2B), shape: const CircleBorder(), elevation: 8, padding: const EdgeInsets.all(18),),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF8D2B),
+                      shape: const CircleBorder(),
+                      elevation: 8,
+                      padding: const EdgeInsets.all(18),
+                    ),
                     onPressed: () async {
-                      // ScannerPage는 최종적으로 RegisterResult? 타입을 반환합니다.
-                      final result = await Navigator.push<RegisterResult?>(
+                      final result =
+                      await Navigator.push<RegisterResult?>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ScannerPage(),
                         ),
                       );
 
-                      // ReceiptResultPage -> ScannerPage를 거쳐 최종적으로 반환된 결과가 있다면,
                       if (result != null && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('경험치 ${result.expAwarded} 획득!')),
-                        );
+                        // 🔹 SnackBar 대신 떠오르는 EXP 애니메이션
+                        _showFloatingExp(context, result.expAwarded);
 
-                        // 전달받은 결과로 UI를 즉시 업데이트합니다.
                         _updateStateWithXpData(
                           level: result.levelAfter,
                           totalExp: result.totalExpAfter,
                         );
                       }
                     },
-                    child: const Icon(Icons.camera_alt, size: 28, color: Colors.white,),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 28,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -253,7 +435,8 @@ class _LevelBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4E8),
         borderRadius: BorderRadius.circular(12),
@@ -285,7 +468,8 @@ class _SpeechBubbleBorderRight extends ShapeBorder {
   final double radius;
   final double nipSize;
 
-  const _SpeechBubbleBorderRight({this.radius = 12, this.nipSize = 8});
+  const _SpeechBubbleBorderRight(
+      {this.radius = 12, this.nipSize = 8});
 
   @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
@@ -309,7 +493,8 @@ class _SpeechBubbleBorderRight extends ShapeBorder {
       getOuterPath(rect, textDirection: textDirection);
 
   @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+  void paint(Canvas canvas, Rect rect,
+      {TextDirection? textDirection}) {}
 
   @override
   ShapeBorder scale(double t) =>
@@ -320,13 +505,14 @@ class _MascotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final body = Paint()..color = const Color(0xFFFFD39C);
-    final blush = Paint()..color = const Color(0xFFFFA67A).withOpacity(0.6);
+    final blush =
+    Paint()..color = const Color(0xFFFFA67A).withOpacity(0.6);
     final shadow = Paint()..color = Colors.black12;
 
     // 바닥 그림자
     canvas.drawOval(
-        Rect.fromLTWH(size.width * 0.25, size.height * 0.82, size.width * 0.5,
-            size.height * 0.08),
+        Rect.fromLTWH(size.width * 0.25, size.height * 0.82,
+            size.width * 0.5, size.height * 0.08),
         shadow);
 
     // 몸통
@@ -334,34 +520,41 @@ class _MascotPainter extends CustomPainter {
         center: Offset(size.width * 0.5, size.height * 0.5),
         radius: size.width * 0.28);
     canvas.drawRRect(
-        RRect.fromRectAndRadius(bodyRect, const Radius.circular(60)), body);
+        RRect.fromRectAndRadius(bodyRect, const Radius.circular(60)),
+        body);
 
     // 귀
     canvas.drawOval(
-        Rect.fromLTWH(
-            size.width * 0.18, size.height * 0.42, size.width * 0.16, size.height * 0.1),
+        Rect.fromLTWH(size.width * 0.18, size.height * 0.42,
+            size.width * 0.16, size.height * 0.1),
         body);
     canvas.drawOval(
-        Rect.fromLTWH(
-            size.width * 0.66, size.height * 0.42, size.width * 0.16, size.height * 0.1),
+        Rect.fromLTWH(size.width * 0.66, size.height * 0.42,
+            size.width * 0.16, size.height * 0.1),
         body);
 
     // 얼굴 홍조
     canvas.drawCircle(
-        Offset(size.width * 0.38, size.height * 0.55), size.width * 0.08, blush);
+        Offset(size.width * 0.38, size.height * 0.55),
+        size.width * 0.08,
+        blush);
     canvas.drawCircle(
-        Offset(size.width * 0.62, size.height * 0.55), size.width * 0.08, blush);
+        Offset(size.width * 0.62, size.height * 0.55),
+        size.width * 0.08,
+        blush);
 
     // 눈
     final eye = Paint()..color = Colors.black;
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.47, size.height * 0.50, 6, 18),
+            Rect.fromLTWH(
+                size.width * 0.47, size.height * 0.50, 6, 18),
             const Radius.circular(3)),
         eye);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.52, size.height * 0.50, 6, 18),
+            Rect.fromLTWH(
+                size.width * 0.52, size.height * 0.50, 6, 18),
             const Radius.circular(3)),
         eye);
 
