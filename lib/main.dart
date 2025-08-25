@@ -410,9 +410,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                     },
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size: 28,
+                    child: Image.asset(
+                      'assets/union.png',
+                      width: 28,
+                      height: 28,
                       color: Colors.white,
                     ),
                   ),
